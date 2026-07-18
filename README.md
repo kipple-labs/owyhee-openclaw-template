@@ -20,7 +20,7 @@ paths: `deploy/landing/index.html`.
 
 | Provider | How | Notes |
 | --- | --- | --- |
-| **Railway** | [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template/owyhee-openclaw) | True one-click. Set `OWYHEE_DEPLOY_EMAIL` + `ANTHROPIC_API_KEY` when prompted; add a volume at `/data` for idempotent re-deploys. |
+| **Railway** | [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/owyhee-governed-openclaw-agent) | True one-click. Set `OWYHEE_DEPLOY_EMAIL` + `ANTHROPIC_API_KEY` when prompted; add a volume at `/data` for idempotent re-deploys. |
 | **DigitalOcean** | Paste [`deploy/cloud-init-digitalocean.yml`](deploy/cloud-init-digitalocean.yml) into the droplet's **user data** box | Native 1-Click Marketplace listing in review; the script is the same thing, today. |
 | **Hetzner** | `hcloud server create … --user-data-from-file deploy/cloud-init-hetzner.yml` | No native button; cloud-init works on every create surface. |
 
