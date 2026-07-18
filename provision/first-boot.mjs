@@ -141,6 +141,10 @@ if (existsSync(OPENCLAW_JSON)) {
 }
 cfg.gateway = {
   ...(cfg.gateway ?? {}),
+  // 'local' = this gateway is the local supervisor (the non-tailnet, single
+  // box mode); without it the gateway refuses to start ("missing
+  // gateway.mode ... treat as suspicious or clobbered config").
+  mode: cfg.gateway?.mode || 'local',
   port: GATEWAY_PORT,
   // bind is a MODE enum in OpenClaw 2026.7.x (auto|lan|loopback|custom|
   // tailnet — host aliases like 0.0.0.0 are rejected as legacy). 'lan'
