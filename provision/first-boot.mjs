@@ -27,7 +27,9 @@ const OWYHEE_DIR = join(HOME, 'owyhee');
 const CREDS_PATH = join(OWYHEE_DIR, 'credentials.json');
 const GATEWAY_TOKEN_PATH = join(OWYHEE_DIR, 'gateway-token');
 const OPENCLAW_JSON = join(HOME, '.openclaw', 'openclaw.json');
-const ANTHROPIC_SECRET_FILE = '/run/secrets/anthropic_api_key';
+// Installed claw-owned 0400 by the entrypoint (the raw /run/secrets mount is
+// root-owned; see entrypoint.sh).
+const ANTHROPIC_SECRET_FILE = join(OWYHEE_DIR, 'model-key');
 
 const BASE = (process.env.OWYHEE_BASE_URL || 'https://console.kipplelabs.com').replace(/\/$/, '');
 const EMAIL = process.env.OWYHEE_DEPLOY_EMAIL || '';
@@ -140,9 +142,11 @@ if (existsSync(OPENCLAW_JSON)) {
 cfg.gateway = {
   ...(cfg.gateway ?? {}),
   port: GATEWAY_PORT,
-  // In-container the gateway must accept the docker-proxied connection; the
-  // compose file's 127.0.0.1 publish is what keeps it host-loopback-only.
-  bind: process.env.OPENCLAW_GATEWAY_BIND || '0.0.0.0',
+  // bind is a MODE enum in OpenClaw 2026.7.x (auto|lan|loopback|custom|
+  // tailnet — host aliases like 0.0.0.0 are rejected as legacy). 'lan'
+  // accepts the docker-proxied connection inside the container; the compose
+  // file's 127.0.0.1 publish is what keeps it host-loopback-only.
+  bind: process.env.OPENCLAW_GATEWAY_BIND || 'lan',
   auth: { ...(cfg.gateway?.auth ?? {}), mode: 'token', token: gatewayToken },
 };
 writeFileSync(OPENCLAW_JSON, JSON.stringify(cfg, null, 2), { mode: 0o600 });
@@ -163,10 +167,12 @@ if (creds?.token && SERVER_NAMES.length > 0) {
       headers: { Authorization: `Bearer ${creds.token}` },
     });
     try {
-      execFileSync('openclaw', ['mcp', 'set', name, entry], { stdio: ['ignore', 'ignore', 'inherit'] });
+      // stderr is swallowed too: on failure execFile errors embed the full
+      // argv (which carries the bearer) — never let that reach the logs.
+      execFileSync('openclaw', ['mcp', 'set', name, entry], { stdio: ['ignore', 'ignore', 'ignore'] });
       log(`MCP server '${name}' → ${proxyBase}/mcp/${name} (governed by Owyhee)`);
     } catch (e) {
-      warn(`openclaw mcp set ${name} failed: ${e?.message ?? e}`);
+      warn(`openclaw mcp set ${name} failed (exit ${e?.status ?? '?'}) — run 'openclaw config validate' inside the container`);
     }
   }
 } else if (SERVER_NAMES.length > 0) {

@@ -17,13 +17,16 @@ FROM node:22-slim
 ARG OPENCLAW_VERSION=2026.7.1
 RUN npm install -g openclaw@${OPENCLAW_VERSION} && npm cache clean --force
 
-# Non-root. HOME=/data so OpenClaw's state (~/.openclaw) lands on the volume.
+# Non-root runtime. HOME=/data so OpenClaw's state (~/.openclaw) lands on the
+# volume. The entrypoint starts as root ONLY to hand the mounted model-key
+# secret to the runtime user (compose secret mounts are root-owned and ignore
+# uid/gid), then drops to uid 10001 via setpriv before any app code runs.
 RUN useradd --create-home --uid 10001 claw \
     && mkdir -p /data && chown claw:claw /data
-USER claw
 ENV HOME=/data
 WORKDIR /data
 
-COPY --chown=claw:claw provision/ /opt/owyhee/
+COPY provision/ /opt/owyhee/
+RUN chmod +x /opt/owyhee/entrypoint.sh
 
-ENTRYPOINT ["node", "/opt/owyhee/first-boot.mjs"]
+ENTRYPOINT ["/opt/owyhee/entrypoint.sh"]
