@@ -70,4 +70,13 @@ The model API key rides a **docker secret file** (`anthropic_api_key.secret`), n
 
 ## License
 
-TBD — not yet licensed for redistribution.
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT No Attribution License ([LICENSE-MIT-0](LICENSE-MIT-0))
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this work by you shall be dual-licensed as above, without any
+additional terms or conditions.
