@@ -183,7 +183,10 @@ log(`activity & receipts: ${BASE}/ui/ (every governed call lands in the audit tr
 
 // ---------- 4. run the gateway (foreground) ----------
 
-const child = spawn('openclaw', ['gateway', 'start'], {
+// Foreground, not `gateway start` — the latter is the systemd/service path
+// and refuses inside a container (its own hint: run the gateway in the
+// foreground instead).
+const child = spawn('openclaw', ['gateway'], {
   stdio: 'inherit',
   env: {
     ...process.env,
