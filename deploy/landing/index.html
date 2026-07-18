@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deploy a governed agent — Owyhee</title>
+<style>
+  :root {
+    --bg:#FAF9F5; --surface:#FFFFFF; --hover:#F2F0EA; --border:#E7E4DD;
+    --ink:#141413; --ink2:#605F5A; --ink3:#8A8883;
+    --good:#1A7F4B; --radius:10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1B1A18; --surface:#232220; --hover:#2C2A27; --border:#38352F;
+            --ink:#EDEBE5; --ink2:#B4B1A9; --ink3:#86837C; --good:#52C583; }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font:16px/1.6 ui-sans-serif,-apple-system,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:inherit; }
+  .wrap { max-width:820px; margin:0 auto; padding:56px 24px 80px; }
+  .brand { display:flex; align-items:center; gap:10px; margin-bottom:40px; }
+  .brand .word { font-family:Georgia,serif; font-size:22px; }
+  h1 { font-size:32px; line-height:1.2; letter-spacing:-0.02em; margin-bottom:14px; }
+  h1 .em { color:var(--ink2); }
+  .lede { font-size:18px; color:var(--ink2); max-width:60ch; margin-bottom:36px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:0.07em; color:var(--ink3); margin:40px 0 16px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px 24px; margin-bottom:16px; }
+  .card h3 { font-size:18px; margin-bottom:4px; }
+  .card p { color:var(--ink2); font-size:15px; margin-bottom:14px; }
+  .card .meta { font-size:13px; color:var(--ink3); margin-top:10px; }
+  code, pre { font-family:ui-monospace,Consolas,monospace; font-size:13px; }
+  pre { background:var(--hover); border-radius:8px; padding:12px 14px; overflow:auto; margin-top:6px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:var(--bg); border-radius:8px; padding:10px 18px; font-size:15px; font-weight:600; text-decoration:none; }
+  .steps { display:flex; flex-direction:column; gap:2px; counter-reset:s; }
+  .step { display:flex; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); }
+  .step:last-child { border-bottom:0; }
+  .step .n { counter-increment:s; flex:none; width:26px; height:26px; border-radius:99px; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--ink2); }
+  .step .n::before { content:counter(s); }
+  .step .t { font-weight:600; }
+  .step .d { color:var(--ink2); font-size:14.5px; }
+  .foot { margin-top:48px; color:var(--ink3); font-size:13px; }
+  .pill { display:inline-block; background:var(--hover); color:var(--ink2); border-radius:99px; padding:2px 10px; font-size:12px; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="44 9.4" transform="rotate(64 12 12)"/></svg>
+    <span class="word">Owyhee</span>
+  </div>
+
+  <h1>Deploy an AI agent that can't run wild.<br><span class="em">One click. Your cloud. Governed from minute one.</span></h1>
+  <p class="lede">This stands up a hardened OpenClaw agent in your own cloud. Every tool it touches goes through Owyhee — permission-gated, budgeted, kill-switchable, and receipted — and your tool credentials live in Owyhee custody, not on the box. No keys in env files, no open gateway, no wondering what it did overnight.</p>
+
+  <h2>Pick a deploy path</h2>
+
+  <div class="card">
+    <h3>Railway — one click</h3>
+    <p>The fastest path. Railway builds and runs the image for you; you fill in your email and model key as it deploys.</p>
+    <a class="btn" href="https://railway.com/new/template/owyhee-openclaw"><span>Deploy on Railway →</span></a>
+    <div class="meta">Set <code>OWYHEE_DEPLOY_EMAIL</code> and <code>ANTHROPIC_API_KEY</code> when prompted. Add a volume at <code>/data</code> so re-deploys keep the same account.</div>
+  </div>
+
+  <div class="card">
+    <h3>DigitalOcean — droplet with a paste-in script</h3>
+    <p>Create an Ubuntu droplet, and under <b>Advanced options → user data</b> paste the cloud-init below (edit the two values first). It installs Docker and boots the agent.</p>
+    <pre>curl -fsSL https://raw.githubusercontent.com/MachinesOfDesire/owyhee-openclaw-template/main/deploy/cloud-init-digitalocean.yml</pre>
+    <div class="meta">A native 1-Click Marketplace listing is in review — this script is the same thing, available today.</div>
+  </div>
+
+  <div class="card">
+    <h3>Hetzner — cloud-init</h3>
+    <p>No native button, but every Hetzner server-create surface takes a cloud-config:</p>
+    <pre>hcloud server create --name owyhee-agent --type cx22 --image ubuntu-24.04 \
+  --user-data-from-file deploy/cloud-init-hetzner.yml</pre>
+  </div>
+
+  <h2>What happens after you deploy</h2>
+  <div class="card">
+    <div class="steps">
+      <div class="step"><span class="n"></span><div><div class="t">The agent boots and provisions a claimable account</div><div class="d">Keyed to the email you gave it — no login required at deploy time.</div></div></div>
+      <div class="step"><span class="n"></span><div><div class="t">You get a claim link by email</div><div class="d">Click it and sign in to bind the account to your login. Unclaimed accounts expire.</div></div></div>
+      <div class="step"><span class="n"></span><div><div class="t">Connect tools in the console</div><div class="d">Add an MCP server — its credentials go into custody, never onto the box. Grant the agent what it may use.</div></div></div>
+      <div class="step"><span class="n"></span><div><div class="t">Watch, cap, or kill it — anytime</div><div class="d">Every action is a receipt in Records. Set a spend cap. Suspend the agent and its next action stops cold.</div></div></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="pill">no keys on the box</span> &nbsp; <span class="pill">no open gateway</span> &nbsp; <span class="pill">every action receipted</span>
+    <p style="margin-top:14px;">The agent runs in your cloud; the governance is Owyhee's. Source, hardening checklist, and configs: <code>MachinesOfDesire/owyhee-openclaw-template</code>.</p>
+  </div>
+</div>
+</body>
+</html>

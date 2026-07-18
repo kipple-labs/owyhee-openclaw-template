@@ -100,21 +100,33 @@ if (!creds && EMAIL) {
   warn('OWYHEE_DEPLOY_EMAIL is not set — skipping provisioning entirely.');
 }
 
-// ---------- 2. model key from the secret FILE (never env) ----------
+// ---------- 2. model key: mounted secret FILE, else env ----------
+//
+// The docker-compose path mounts the key as a secret FILE (preferred — it
+// stays out of `docker inspect`). The deploy-button platforms (Railway,
+// DigitalOcean, Hetzner) have no docker-secret primitive, so there the key
+// arrives as the ANTHROPIC_API_KEY env var. Prefer the file; fall back to env.
 
 let anthropicKey = null;
+let keySource = null;
 if (existsSync(ANTHROPIC_SECRET_FILE)) {
   try {
     anthropicKey = readFileSync(ANTHROPIC_SECRET_FILE, 'utf8').trim() || null;
-    if (anthropicKey) log('model API key loaded from mounted secret file');
+    if (anthropicKey) keySource = 'secret file';
   } catch (e) {
     // Root-owned mount (compose short secret syntax) — never crash the boot
     // over the model key; the governance plumbing works without it.
     warn(`model key secret exists but is unreadable (${e?.code ?? e}) — use the compose long syntax (uid 10001) shown in docker-compose.yml`);
   }
 }
-if (!anthropicKey) {
-  warn('no model API key secret mounted (anthropic_api_key) — the agent cannot think until one is provided.');
+if (!anthropicKey && process.env.ANTHROPIC_API_KEY) {
+  anthropicKey = process.env.ANTHROPIC_API_KEY.trim() || null;
+  if (anthropicKey) keySource = 'ANTHROPIC_API_KEY env (deploy-button path)';
+}
+if (anthropicKey) {
+  log(`model API key loaded from ${keySource}`);
+} else {
+  warn('no model API key provided (secret file or ANTHROPIC_API_KEY) — the agent cannot think until one is set.');
 }
 
 // ---------- 3. OpenClaw config: hardening + MCP entries ----------

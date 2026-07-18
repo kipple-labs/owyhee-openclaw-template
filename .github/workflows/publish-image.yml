@@ -1,0 +1,50 @@
+# Build and publish the hardened-agent image to GHCR so the deploy buttons can
+# pull a public image (strangers deploying into their own cloud never need to
+# clone this repo). Runs on push to main and on version tags.
+#
+# One-time setup by the repo owner: after the first successful run, set the
+# package visibility to PUBLIC (GitHub → Packages → owyhee-openclaw →
+# Package settings → Change visibility → Public). Until then the image is
+# private and the buttons only work for authenticated pulls.
+name: publish-image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/owyhee-openclaw
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=sha,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -1,0 +1,35 @@
+#cloud-config
+# Owyhee-hardened OpenClaw — DigitalOcean droplet user-data.
+#
+# Paste this into the droplet create screen's "user data" box (Advanced
+# options → Add Initialization scripts). Edit the two ENV values first:
+#   OWYHEE_DEPLOY_EMAIL  — the email that receives the claim link and owns the account
+#   ANTHROPIC_API_KEY    — your model key
+# Optionally set OWYHEE_MCP_SERVERS (comma-separated server names from your
+# Owyhee console) and OWYHEE_DEPLOY_TOKEN (if your deployment gates provisioning).
+#
+# The droplet installs Docker, pulls the public hardened image, and runs it
+# with a persistent volume so re-boots reuse the same claimable account. The
+# agent's tool traffic is governed by Owyhee; nothing is exposed publicly.
+
+write_files:
+  - path: /etc/owyhee/agent.env
+    permissions: '0600'
+    content: |
+      OWYHEE_DEPLOY_EMAIL=you@example.com
+      ANTHROPIC_API_KEY=sk-ant-REPLACE_ME
+      OWYHEE_BASE_URL=https://console.kipplelabs.com
+      OWYHEE_MCP_SERVERS=
+      OWYHEE_DEPLOY_TOKEN=
+      OWYHEE_DEPLOY_REF=digitalocean
+
+runcmd:
+  - curl -fsSL https://get.docker.com | sh
+  - systemctl enable --now docker
+  - docker volume create owyhee-data
+  - |
+    docker run -d --name owyhee-agent --restart unless-stopped \
+      --env-file /etc/owyhee/agent.env \
+      -v owyhee-data:/data \
+      ghcr.io/machinesofdesire/owyhee-openclaw:latest
+  - echo "Owyhee agent started. Check your email for the claim link, then claim the account at https://console.kipplelabs.com" > /root/OWYHEE-README.txt
