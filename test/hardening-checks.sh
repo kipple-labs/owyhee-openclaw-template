@@ -50,13 +50,26 @@ fi
 AUTHMODE=$(docker exec "$C" node -e "const c=require('/data/.openclaw/openclaw.json');console.log(c.gateway?.auth?.mode??'')" 2>/dev/null)
 [ "$AUTHMODE" = "token" ] && pass "gateway auth.mode=token" || fail "gateway auth.mode is '$AUTHMODE' (want token)"
 
-# 5. Unauthenticated gateway call is refused; authenticated is not.
-CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/" || echo 000)
+# 5. Unauthenticated CONTROL calls are refused; authenticated ones are not.
+#    GET / serves the static UI shell (public by design) — the control
+#    surface is /tools/invoke, which must demand the token.
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:${PORT}/tools/invoke" \
+  -H 'content-type: application/json' -d '{"tool":"sessions_list","action":"json"}' || echo 000)
 case "$CODE" in
-  401|403) pass "unauthenticated gateway request refused ($CODE)";;
+  401|403) pass "unauthenticated control call refused ($CODE)";;
   000) fail "gateway not reachable on loopback (is the container up?)";;
-  *) fail "unauthenticated gateway request returned $CODE (want 401/403)";;
+  *) fail "unauthenticated control call returned $CODE (want 401/403)";;
 esac
+GWTOK=$(docker exec "$C" cat /data/owyhee/gateway-token 2>/dev/null)
+if [ -n "$GWTOK" ]; then
+  ACODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:${PORT}/tools/invoke" \
+    -H "authorization: Bearer $GWTOK" -H 'content-type: application/json' \
+    -d '{"tool":"sessions_list","action":"json"}' || echo 000)
+  case "$ACODE" in
+    401|403|000) fail "AUTHENTICATED control call refused ($ACODE) — token wiring broken";;
+    *) pass "authenticated control call accepted ($ACODE)";;
+  esac
+fi
 
 # 6. Secrets on the volume are 0600.
 for f in /data/owyhee/credentials.json /data/owyhee/gateway-token; do
