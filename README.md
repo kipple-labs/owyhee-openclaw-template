@@ -11,6 +11,26 @@ A Docker template that boots [OpenClaw](https://www.npmjs.com/package/openclaw) 
 | No record of what the agent did | Every governed call lands an audit receipt |
 | No off switch | Suspend in the console kills the agent's next call |
 
+## Deploy into your cloud (one click)
+
+Don't want to run Docker yourself? Stand this up in your own cloud provider —
+the agent provisions a claimable Owyhee account keyed to your email, and you
+claim it from the link that lands in your inbox. Landing page with all three
+paths: `deploy/landing/index.html`.
+
+| Provider | How | Notes |
+| --- | --- | --- |
+| **Railway** | [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template/owyhee-openclaw) | True one-click. Set `OWYHEE_DEPLOY_EMAIL` + `ANTHROPIC_API_KEY` when prompted; add a volume at `/data` for idempotent re-deploys. |
+| **DigitalOcean** | Paste [`deploy/cloud-init-digitalocean.yml`](deploy/cloud-init-digitalocean.yml) into the droplet's **user data** box | Native 1-Click Marketplace listing in review; the script is the same thing, today. |
+| **Hetzner** | `hcloud server create … --user-data-from-file deploy/cloud-init-hetzner.yml` | No native button; cloud-init works on every create surface. |
+
+All three pass your deploy email through to Owyhee provisioning and pull the
+public image `ghcr.io/machinesofdesire/owyhee-openclaw:latest` (built by
+`.github/workflows/publish-image.yml`). Tool traffic is Owyhee-governed and the
+gateway is never exposed publicly. See [`deploy/MARKETPLACE.md`](deploy/MARKETPLACE.md)
+for the DigitalOcean Marketplace submission checklist and the one-time Railway
+template publish step.
+
 ## Quickstart
 
 ```sh

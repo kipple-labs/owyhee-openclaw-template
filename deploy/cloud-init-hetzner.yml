@@ -1,0 +1,38 @@
+#cloud-config
+# Owyhee-hardened OpenClaw — Hetzner Cloud server user-data.
+#
+# Hetzner has no one-click marketplace button, but every server-create surface
+# (console "Cloud config", hcloud CLI --user-data, Terraform user_data) accepts
+# a cloud-config. Edit the two ENV values, then paste this in.
+#   OWYHEE_DEPLOY_EMAIL  — receives the claim link, owns the account
+#   ANTHROPIC_API_KEY    — your model key
+# Optional: OWYHEE_MCP_SERVERS, OWYHEE_DEPLOY_TOKEN.
+#
+#   hcloud server create --name owyhee-agent --type cx22 --image ubuntu-24.04 \
+#     --user-data-from-file deploy/cloud-init-hetzner.yml
+#
+# Same shape as the DigitalOcean path: Docker + the public hardened image +
+# a persistent volume for idempotent re-boots. Tool traffic is Owyhee-governed;
+# nothing is exposed publicly.
+
+write_files:
+  - path: /etc/owyhee/agent.env
+    permissions: '0600'
+    content: |
+      OWYHEE_DEPLOY_EMAIL=you@example.com
+      ANTHROPIC_API_KEY=sk-ant-REPLACE_ME
+      OWYHEE_BASE_URL=https://console.kipplelabs.com
+      OWYHEE_MCP_SERVERS=
+      OWYHEE_DEPLOY_TOKEN=
+      OWYHEE_DEPLOY_REF=hetzner
+
+runcmd:
+  - curl -fsSL https://get.docker.com | sh
+  - systemctl enable --now docker
+  - docker volume create owyhee-data
+  - |
+    docker run -d --name owyhee-agent --restart unless-stopped \
+      --env-file /etc/owyhee/agent.env \
+      -v owyhee-data:/data \
+      ghcr.io/machinesofdesire/owyhee-openclaw:latest
+  - echo "Owyhee agent started. Check your email for the claim link, then claim the account at https://console.kipplelabs.com" > /root/OWYHEE-README.txt
