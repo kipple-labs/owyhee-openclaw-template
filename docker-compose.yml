@@ -1,0 +1,47 @@
+# Owyhee-hardened OpenClaw — one-command deploy.
+#
+#   OWYHEE_DEPLOY_EMAIL=you@example.com docker compose up -d
+#
+# First boot provisions a CLAIMABLE Owyhee account for that email (check your
+# inbox for the claim link), mints the agent's proxy credential into the data
+# volume, points OpenClaw's MCP config at the Owyhee proxy, and starts the
+# gateway with token auth ON, published on the HOST LOOPBACK ONLY.
+
+services:
+  openclaw:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Required: the email that will receive the claim link and own the account.
+      OWYHEE_DEPLOY_EMAIL: ${OWYHEE_DEPLOY_EMAIL:?Set OWYHEE_DEPLOY_EMAIL to your email}
+      # The Owyhee deployment fronting your agent.
+      OWYHEE_BASE_URL: ${OWYHEE_BASE_URL:-https://console.kipplelabs.com}
+      # Comma-separated MCP server NAMES registered (or to be registered) in
+      # your Owyhee console — names only, never credentials. Each becomes an
+      # OpenClaw MCP entry pointed at <base>/mcp/<name>.
+      OWYHEE_MCP_SERVERS: ${OWYHEE_MCP_SERVERS:-}
+      # Optional: deploy gate token, if the Owyhee deployment requires one.
+      OWYHEE_DEPLOY_TOKEN: ${OWYHEE_DEPLOY_TOKEN:-}
+      # Free-form label for this deploy (shows up in credential labels + audit).
+      OWYHEE_DEPLOY_REF: ${OWYHEE_DEPLOY_REF:-compose}
+      # Gateway port inside the container (published loopback-only below).
+      OPENCLAW_GATEWAY_PORT: ${OPENCLAW_GATEWAY_PORT:-18789}
+    ports:
+      # LOOPBACK ONLY. Never change this to "18789:18789" — an all-interfaces
+      # publish is exactly the exposed-instance footgun this template exists
+      # to prevent. Reach the gateway via localhost or an SSH tunnel.
+      - "127.0.0.1:${OPENCLAW_GATEWAY_PORT:-18789}:${OPENCLAW_GATEWAY_PORT:-18789}"
+    volumes:
+      - openclaw-data:/data
+    secrets:
+      - anthropic_api_key
+
+secrets:
+  # The model API key rides a docker secret FILE, not ENV — `docker inspect`
+  # and process environments stay clean. Create the file next to this compose:
+  #   printf '%s' 'sk-ant-...' > anthropic_api_key.secret && chmod 600 anthropic_api_key.secret
+  anthropic_api_key:
+    file: ./anthropic_api_key.secret
+
+volumes:
+  openclaw-data:
