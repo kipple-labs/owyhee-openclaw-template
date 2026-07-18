@@ -34,7 +34,12 @@ services:
     volumes:
       - openclaw-data:/data
     secrets:
-      - anthropic_api_key
+      # Long syntax so the file is readable by the container's non-root user
+      # (default secret mounts are root-owned; the runtime is uid 10001).
+      - source: anthropic_api_key
+        uid: "10001"
+        gid: "10001"
+        mode: 0400
 
 secrets:
   # The model API key rides a docker secret FILE, not ENV — `docker inspect`

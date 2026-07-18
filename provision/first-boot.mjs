@@ -102,8 +102,14 @@ if (!creds && EMAIL) {
 
 let anthropicKey = null;
 if (existsSync(ANTHROPIC_SECRET_FILE)) {
-  anthropicKey = readFileSync(ANTHROPIC_SECRET_FILE, 'utf8').trim() || null;
-  if (anthropicKey) log('model API key loaded from mounted secret file');
+  try {
+    anthropicKey = readFileSync(ANTHROPIC_SECRET_FILE, 'utf8').trim() || null;
+    if (anthropicKey) log('model API key loaded from mounted secret file');
+  } catch (e) {
+    // Root-owned mount (compose short secret syntax) — never crash the boot
+    // over the model key; the governance plumbing works without it.
+    warn(`model key secret exists but is unreadable (${e?.code ?? e}) — use the compose long syntax (uid 10001) shown in docker-compose.yml`);
+  }
 }
 if (!anthropicKey) {
   warn('no model API key secret mounted (anthropic_api_key) — the agent cannot think until one is provided.');
