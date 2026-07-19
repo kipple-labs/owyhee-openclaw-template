@@ -35,10 +35,11 @@ const DEPLOY_REF = process.env.OWYHEE_DEPLOY_REF || 'template';
 const SERVER_NAMES = (process.env.OWYHEE_MCP_SERVERS || '')
   .split(',').map((s) => s.trim()).filter(Boolean);
 const GATEWAY_PORT = Number(process.env.OPENCLAW_GATEWAY_PORT || 18789);
-// The LLM upstream to route the model through — an is_llm_provider server the
-// operator connects in their Owyhee console (default 'openrouter': one key,
-// hundreds of models). OWYHEE_MODEL is the default slug OpenClaw sends; override
-// it to match whichever provider you connect (e.g. anthropic/claude-...).
+// The LLM upstream to route the model through — the is_llm_provider server the
+// operator connects in their Owyhee console. Which provider is a deployment /
+// backend choice; the values below are just the fallback route + slug (kept in
+// ONE place so the default can change centrally). Override to match whatever you
+// connect.
 const LLM_SERVER = (process.env.OWYHEE_LLM_SERVER || 'openrouter').trim();
 const DEFAULT_MODEL = (process.env.OWYHEE_MODEL || 'openrouter/auto').trim();
 
@@ -141,11 +142,11 @@ cfg.gateway = {
   auth: { ...(cfg.gateway?.auth ?? {}), mode: 'token', token: gatewayToken },
 };
 // Model routing: point OpenClaw's model provider at the Owyhee proxy. The box
-// holds NO provider key — Owyhee injects the custodied upstream key (OpenRouter,
-// Anthropic, …) and forwards, so every model call is token-metered, budgeted,
-// kill-switchable, and receipted, exactly like tool calls. The upstream is
-// whichever is_llm_provider server the operator connects in the console
-// (default 'openrouter'); the model slug rides per request.
+// holds NO provider key — Owyhee injects the custodied upstream key and
+// forwards, so every model call is token-metered, budgeted, kill-switchable,
+// and receipted, exactly like tool calls. The upstream is whichever
+// is_llm_provider server the operator connects in the console; the model slug
+// rides per request.
 //
 // NOTE: confirm the OpenClaw custom-provider key names below against
 // `openclaw config validate` on a live boot (OpenClaw 2026.7.1). The

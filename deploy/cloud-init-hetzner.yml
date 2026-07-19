@@ -14,7 +14,7 @@
 # Same shape as the DigitalOcean path: Docker + the public hardened image +
 # a persistent volume for idempotent re-boots. Tool AND model traffic are
 # Owyhee-governed; nothing is exposed publicly. After boot, claim your account
-# and connect an LLM provider (OpenRouter recommended) in the console.
+# and connect your LLM provider in the console.
 
 write_files:
   - path: /etc/owyhee/agent.env
@@ -24,8 +24,6 @@ write_files:
       OWYHEE_BASE_URL=https://console.kipplelabs.com
       OWYHEE_MCP_SERVERS=
       OWYHEE_DEPLOY_TOKEN=
-      OWYHEE_LLM_SERVER=openrouter
-      OWYHEE_MODEL=openrouter/auto
       OWYHEE_DEPLOY_REF=hetzner
 
 runcmd:

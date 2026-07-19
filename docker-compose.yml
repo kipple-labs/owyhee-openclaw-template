@@ -8,9 +8,9 @@
 # proxy, and starts the gateway with token auth ON, published on the HOST
 # LOOPBACK ONLY.
 #
-# No provider key lives on this box. After claiming, connect an LLM provider
-# (OpenRouter recommended) under Connected Services in the console and grant this
-# agent access — then it can think. Its model spend is governed like everything else.
+# No provider key lives on this box. After claiming, connect your LLM provider
+# under Connected Services in the console and grant this agent access — then it
+# can think. Its model spend is governed like everything else.
 
 services:
   openclaw:
@@ -32,11 +32,11 @@ services:
       # Gateway port inside the container (published loopback-only below).
       OPENCLAW_GATEWAY_PORT: ${OPENCLAW_GATEWAY_PORT:-18789}
       # The agent's MODEL routes through Owyhee too — NO provider key on this box.
-      # OWYHEE_LLM_SERVER is the is_llm_provider server you connect in the console
-      # (default 'openrouter': one key → hundreds of models). OWYHEE_MODEL is the
-      # default slug; override it to match whichever provider you connect.
-      OWYHEE_LLM_SERVER: ${OWYHEE_LLM_SERVER:-openrouter}
-      OWYHEE_MODEL: ${OWYHEE_MODEL:-openrouter/auto}
+      # OWYHEE_LLM_SERVER names the is_llm_provider server you connect in the
+      # console; OWYHEE_MODEL is the model slug. Leave unset to use the deploy
+      # default, or set them to match whatever provider you connect.
+      OWYHEE_LLM_SERVER: ${OWYHEE_LLM_SERVER:-}
+      OWYHEE_MODEL: ${OWYHEE_MODEL:-}
     ports:
       # LOOPBACK ONLY. Never change this to "18789:18789" — an all-interfaces
       # publish is exactly the exposed-instance footgun this template exists

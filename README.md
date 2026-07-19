@@ -39,8 +39,8 @@ OWYHEE_DEPLOY_EMAIL=you@example.com docker compose up -d --build
 ./test/hardening-checks.sh
 ```
 
-No model key on the box — after first boot, claim your account and connect an
-LLM provider (OpenRouter recommended) in the console (see below).
+No model key on the box — after first boot, claim your account and connect your
+LLM provider in the console (see below).
 
 First boot:
 1. Provisions a **claimable Owyhee account** for your email — **check your inbox** and claim it (unclaimed accounts expire).
@@ -48,7 +48,7 @@ First boot:
 3. Points OpenClaw's MCP config **and its model provider** at the Owyhee proxy — the box holds no provider key.
 4. Starts the gateway: token auth on, loopback-only.
 
-After claiming, open the console → **Connected Services** to connect an **LLM provider** (OpenRouter recommended — one key, hundreds of models) so the agent can think, plus any tool servers (all credentials go straight into custody). Use the agent page to grant tools, set budgets, or hit the kill switch. The **Activity** view is "what your agent did overnight" — model spend is receipted there too.
+After claiming, open the console → **Connected Services** to connect your **LLM provider** so the agent can think, plus any tool servers (all credentials go straight into custody). Use the agent page to grant tools, set budgets, or hit the kill switch. The **Activity** view is "what your agent did overnight" — model spend is receipted there too.
 
 ## Configuration
 
@@ -60,10 +60,10 @@ After claiming, open the console → **Connected Services** to connect an **LLM 
 | `OWYHEE_DEPLOY_TOKEN` | no | Deploy gate token, if the Owyhee deployment requires one. |
 | `OWYHEE_DEPLOY_REF` | no | Label for this deploy (audit + credential labels). |
 | `OPENCLAW_GATEWAY_PORT` | no | Gateway port (default 18789). |
-| `OWYHEE_LLM_SERVER` | no | The `is_llm_provider` server (from your console) the model routes through (default `openrouter`). |
-| `OWYHEE_MODEL` | no | Default model slug OpenClaw sends (default `openrouter/auto`); match it to your connected provider. |
+| `OWYHEE_LLM_SERVER` | no | The `is_llm_provider` server (from your console) the model routes through. Leave unset to use the deploy default. |
+| `OWYHEE_MODEL` | no | The model slug OpenClaw sends; set it to match the provider you connect. |
 
-The box holds **zero provider keys** — the agent's model routes through the Owyhee proxy, which injects the custodied upstream key (OpenRouter, Anthropic, …) and forwards. Connect your LLM provider once under **Connected Services**; the model call is then token-metered, budgeted, kill-switchable, and receipted like every other action.
+The box holds **zero provider keys** — the agent's model routes through the Owyhee proxy, which injects the custodied upstream key and forwards. Connect your LLM provider once under **Connected Services**; the model call is then token-metered, budgeted, kill-switchable, and receipted like every other action.
 
 ## Operational notes
 

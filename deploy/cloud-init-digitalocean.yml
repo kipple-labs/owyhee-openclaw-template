@@ -7,13 +7,13 @@
 # NO model key goes here: the agent's model routes through the Owyhee proxy.
 # Optionally set OWYHEE_MCP_SERVERS (comma-separated server names from your
 # Owyhee console), OWYHEE_DEPLOY_TOKEN (if your deployment gates provisioning),
-# and OWYHEE_LLM_SERVER / OWYHEE_MODEL (default openrouter / openrouter/auto).
+# and OWYHEE_LLM_SERVER / OWYHEE_MODEL to override the default LLM route.
 #
 # The droplet installs Docker, pulls the public hardened image, and runs it
 # with a persistent volume so re-boots reuse the same claimable account. Tool
 # AND model traffic are governed by Owyhee; nothing is exposed publicly. After
-# it boots, claim your account and connect an LLM provider (OpenRouter
-# recommended) under Connected Services in the console — then the agent can think.
+# it boots, claim your account and connect your LLM provider under Connected
+# Services in the console — then the agent can think.
 
 write_files:
   - path: /etc/owyhee/agent.env
@@ -23,8 +23,6 @@ write_files:
       OWYHEE_BASE_URL=https://console.kipplelabs.com
       OWYHEE_MCP_SERVERS=
       OWYHEE_DEPLOY_TOKEN=
-      OWYHEE_LLM_SERVER=openrouter
-      OWYHEE_MODEL=openrouter/auto
       OWYHEE_DEPLOY_REF=digitalocean
 
 runcmd:
