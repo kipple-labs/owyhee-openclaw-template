@@ -5,12 +5,12 @@
 //      a CLAIMABLE account (POST /provision/claimable with the deploy email)
 //      and persist the minted agent proxy token (0600, volume-only — never
 //      env, never image).
-//   2. Read the model API key from the mounted docker secret FILE (if any).
-//   3. Write OpenClaw config via the `openclaw` CLI + a guarded JSON merge:
+//   2. Write OpenClaw config via the `openclaw` CLI + a guarded JSON merge:
 //      gateway token auth ON (generated token, 0600 on the volume), pinned
-//      gateway port, and one MCP entry per declared Owyhee server name
-//      pointed at <base>/mcp/<name> with the agent bearer.
-//   4. exec the gateway in the foreground.
+//      gateway port, the MODEL provider pointed at the Owyhee proxy (so the
+//      box holds NO provider key), and one MCP entry per declared Owyhee
+//      server name pointed at <base>/mcp/<name> with the agent bearer.
+//   3. exec the gateway in the foreground.
 //
 // Failure posture: a provisioning failure (network, gates, flag off) does NOT
 // crash-loop the container — the gateway still starts, un-provisioned, and a
@@ -27,9 +27,6 @@ const OWYHEE_DIR = join(HOME, 'owyhee');
 const CREDS_PATH = join(OWYHEE_DIR, 'credentials.json');
 const GATEWAY_TOKEN_PATH = join(OWYHEE_DIR, 'gateway-token');
 const OPENCLAW_JSON = join(HOME, '.openclaw', 'openclaw.json');
-// Installed claw-owned 0400 by the entrypoint (the raw /run/secrets mount is
-// root-owned; see entrypoint.sh).
-const ANTHROPIC_SECRET_FILE = join(OWYHEE_DIR, 'model-key');
 
 const BASE = (process.env.OWYHEE_BASE_URL || 'https://console.kipplelabs.com').replace(/\/$/, '');
 const EMAIL = process.env.OWYHEE_DEPLOY_EMAIL || '';
@@ -38,6 +35,12 @@ const DEPLOY_REF = process.env.OWYHEE_DEPLOY_REF || 'template';
 const SERVER_NAMES = (process.env.OWYHEE_MCP_SERVERS || '')
   .split(',').map((s) => s.trim()).filter(Boolean);
 const GATEWAY_PORT = Number(process.env.OPENCLAW_GATEWAY_PORT || 18789);
+// The LLM upstream to route the model through — an is_llm_provider server the
+// operator connects in their Owyhee console (default 'openrouter': one key,
+// hundreds of models). OWYHEE_MODEL is the default slug OpenClaw sends; override
+// it to match whichever provider you connect (e.g. anthropic/claude-...).
+const LLM_SERVER = (process.env.OWYHEE_LLM_SERVER || 'openrouter').trim();
+const DEFAULT_MODEL = (process.env.OWYHEE_MODEL || 'openrouter/auto').trim();
 
 const log = (msg) => console.log(`[owyhee-boot] ${msg}`);
 const warn = (msg) => console.error(`[owyhee-boot] !! ${msg}`);
@@ -100,36 +103,7 @@ if (!creds && EMAIL) {
   warn('OWYHEE_DEPLOY_EMAIL is not set — skipping provisioning entirely.');
 }
 
-// ---------- 2. model key: mounted secret FILE, else env ----------
-//
-// The docker-compose path mounts the key as a secret FILE (preferred — it
-// stays out of `docker inspect`). The deploy-button platforms (Railway,
-// DigitalOcean, Hetzner) have no docker-secret primitive, so there the key
-// arrives as the ANTHROPIC_API_KEY env var. Prefer the file; fall back to env.
-
-let anthropicKey = null;
-let keySource = null;
-if (existsSync(ANTHROPIC_SECRET_FILE)) {
-  try {
-    anthropicKey = readFileSync(ANTHROPIC_SECRET_FILE, 'utf8').trim() || null;
-    if (anthropicKey) keySource = 'secret file';
-  } catch (e) {
-    // Root-owned mount (compose short secret syntax) — never crash the boot
-    // over the model key; the governance plumbing works without it.
-    warn(`model key secret exists but is unreadable (${e?.code ?? e}) — use the compose long syntax (uid 10001) shown in docker-compose.yml`);
-  }
-}
-if (!anthropicKey && process.env.ANTHROPIC_API_KEY) {
-  anthropicKey = process.env.ANTHROPIC_API_KEY.trim() || null;
-  if (anthropicKey) keySource = 'ANTHROPIC_API_KEY env (deploy-button path)';
-}
-if (anthropicKey) {
-  log(`model API key loaded from ${keySource}`);
-} else {
-  warn('no model API key provided (secret file or ANTHROPIC_API_KEY) — the agent cannot think until one is set.');
-}
-
-// ---------- 3. OpenClaw config: hardening + MCP entries ----------
+// ---------- 2. OpenClaw config: hardening + model routing + MCP entries ----------
 
 // Gateway token: generated once, volume-persisted, 0600. Auth is ALWAYS on —
 // even if someone later re-publishes the port beyond loopback, the gateway
@@ -147,6 +121,7 @@ if (existsSync(GATEWAY_TOKEN_PATH)) {
 // Guarded merge into openclaw.json (created if absent). Only the keys this
 // template owns are touched; anything an operator adds later survives.
 mkdirSync(join(HOME, '.openclaw'), { recursive: true });
+const proxyBase = (creds?.proxy_base_url || BASE).replace(/\/$/, '');
 let cfg = {};
 if (existsSync(OPENCLAW_JSON)) {
   try { cfg = JSON.parse(readFileSync(OPENCLAW_JSON, 'utf8')); } catch { cfg = {}; }
@@ -165,14 +140,39 @@ cfg.gateway = {
   bind: process.env.OPENCLAW_GATEWAY_BIND || 'lan',
   auth: { ...(cfg.gateway?.auth ?? {}), mode: 'token', token: gatewayToken },
 };
+// Model routing: point OpenClaw's model provider at the Owyhee proxy. The box
+// holds NO provider key — Owyhee injects the custodied upstream key (OpenRouter,
+// Anthropic, …) and forwards, so every model call is token-metered, budgeted,
+// kill-switchable, and receipted, exactly like tool calls. The upstream is
+// whichever is_llm_provider server the operator connects in the console
+// (default 'openrouter'); the model slug rides per request.
+//
+// NOTE: confirm the OpenClaw custom-provider key names below against
+// `openclaw config validate` on a live boot (OpenClaw 2026.7.1). The
+// no-provider-key-on-the-box invariant holds regardless of the exact schema.
+if (creds?.token) {
+  cfg.model = {
+    ...(cfg.model ?? {}),
+    provider: 'owyhee',
+    baseUrl: `${proxyBase}/proxy/${LLM_SERVER}`,
+    apiKey: creds.token,
+    model: DEFAULT_MODEL,
+  };
+}
+
 writeFileSync(OPENCLAW_JSON, JSON.stringify(cfg, null, 2), { mode: 0o600 });
 chmodSync(OPENCLAW_JSON, 0o600);
 log(`gateway hardened: port ${GATEWAY_PORT}, token auth ON`);
+if (creds?.token) {
+  log(`model routed through Owyhee → ${proxyBase}/proxy/${LLM_SERVER} (default model '${DEFAULT_MODEL}')`);
+  log(`>>> CONNECT AN LLM: add the '${LLM_SERVER}' provider under Connected Services in the console and grant this agent access, or the agent cannot think <<<`);
+} else {
+  warn('model will route through Owyhee once provisioned — no proxy credential yet (the agent cannot think until provisioned AND an LLM provider is connected)');
+}
 
 // MCP entries via the CLI (the version-stable config interface). Names only
 // come from env; the credential comes from the volume.
 if (creds?.token && SERVER_NAMES.length > 0) {
-  const proxyBase = (creds.proxy_base_url || BASE).replace(/\/$/, '');
   for (const name of SERVER_NAMES) {
     if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(name)) {
       warn(`skipping invalid server name '${name}'`);
@@ -197,19 +197,16 @@ if (creds?.token && SERVER_NAMES.length > 0) {
 
 log(`activity & receipts: ${BASE}/ui/ (every governed call lands in the audit trail — check "what your agent did overnight" there)`);
 
-// ---------- 4. run the gateway (foreground) ----------
+// ---------- 3. run the gateway (foreground) ----------
 
 // Foreground, not `gateway start` — the latter is the systemd/service path
 // and refuses inside a container (its own hint: run the gateway in the
 // foreground instead).
 const child = spawn('openclaw', ['gateway'], {
   stdio: 'inherit',
-  env: {
-    ...process.env,
-    // The model key enters ONLY this process's env, read from the secret
-    // file above — it is never visible in `docker inspect` or the image.
-    ...(anthropicKey ? { ANTHROPIC_API_KEY: anthropicKey } : {}),
-  },
+  // No provider key is injected — OpenClaw's model provider points at the Owyhee
+  // proxy (config above) and the proxy holds the credential in custody.
+  env: process.env,
 });
 child.on('exit', (code, signal) => {
   process.exit(code ?? (signal ? 1 : 0));

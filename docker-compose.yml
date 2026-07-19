@@ -4,8 +4,13 @@
 #
 # First boot provisions a CLAIMABLE Owyhee account for that email (check your
 # inbox for the claim link), mints the agent's proxy credential into the data
-# volume, points OpenClaw's MCP config at the Owyhee proxy, and starts the
-# gateway with token auth ON, published on the HOST LOOPBACK ONLY.
+# volume, points OpenClaw's MCP config AND its model provider at the Owyhee
+# proxy, and starts the gateway with token auth ON, published on the HOST
+# LOOPBACK ONLY.
+#
+# No provider key lives on this box. After claiming, connect an LLM provider
+# (OpenRouter recommended) under Connected Services in the console and grant this
+# agent access — then it can think. Its model spend is governed like everything else.
 
 services:
   openclaw:
@@ -26,6 +31,12 @@ services:
       OWYHEE_DEPLOY_REF: ${OWYHEE_DEPLOY_REF:-compose}
       # Gateway port inside the container (published loopback-only below).
       OPENCLAW_GATEWAY_PORT: ${OPENCLAW_GATEWAY_PORT:-18789}
+      # The agent's MODEL routes through Owyhee too — NO provider key on this box.
+      # OWYHEE_LLM_SERVER is the is_llm_provider server you connect in the console
+      # (default 'openrouter': one key → hundreds of models). OWYHEE_MODEL is the
+      # default slug; override it to match whichever provider you connect.
+      OWYHEE_LLM_SERVER: ${OWYHEE_LLM_SERVER:-openrouter}
+      OWYHEE_MODEL: ${OWYHEE_MODEL:-openrouter/auto}
     ports:
       # LOOPBACK ONLY. Never change this to "18789:18789" — an all-interfaces
       # publish is exactly the exposed-instance footgun this template exists
@@ -33,17 +44,6 @@ services:
       - "127.0.0.1:${OPENCLAW_GATEWAY_PORT:-18789}:${OPENCLAW_GATEWAY_PORT:-18789}"
     volumes:
       - openclaw-data:/data
-    secrets:
-      # Mounted root-owned by compose; the entrypoint hands it to the runtime
-      # user (0400) before dropping privileges — see provision/entrypoint.sh.
-      - anthropic_api_key
-
-secrets:
-  # The model API key rides a docker secret FILE, not ENV — `docker inspect`
-  # and process environments stay clean. Create the file next to this compose:
-  #   printf '%s' 'sk-ant-...' > anthropic_api_key.secret && chmod 600 anthropic_api_key.secret
-  anthropic_api_key:
-    file: ./anthropic_api_key.secret
 
 volumes:
   openclaw-data:

@@ -21,9 +21,11 @@ URL references.
 1. Sign in to Railway → New → Deploy from GitHub repo → this repo (connect the
    private repo to your Railway account, or point at the public GHCR image).
 2. Define the service variables the template exposes to the deployer:
-   `OWYHEE_DEPLOY_EMAIL` (required), `ANTHROPIC_API_KEY` (required),
-   `OWYHEE_BASE_URL` (default `https://console.kipplelabs.com`),
-   `OWYHEE_MCP_SERVERS`, `OWYHEE_DEPLOY_TOKEN`, `OWYHEE_DEPLOY_REF=railway`.
+   `OWYHEE_DEPLOY_EMAIL` (required — no model key: the model routes through the
+   Owyhee proxy), `OWYHEE_BASE_URL` (default `https://console.kipplelabs.com`),
+   `OWYHEE_MCP_SERVERS`, `OWYHEE_DEPLOY_TOKEN`,
+   `OWYHEE_LLM_SERVER` (default `openrouter`), `OWYHEE_MODEL` (default
+   `openrouter/auto`), `OWYHEE_DEPLOY_REF=railway`.
 3. Add a **volume mounted at `/data`** so re-deploys reuse the claimable account.
 4. Do NOT attach a public domain — the gateway stays private (governance is
    outbound to Owyhee).

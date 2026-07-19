@@ -50,20 +50,20 @@
   </div>
 
   <h1>Deploy an AI agent that can't run wild.<br><span class="em">One click. Your cloud. Governed from minute one.</span></h1>
-  <p class="lede">This stands up a hardened OpenClaw agent in your own cloud. Every tool it touches goes through Owyhee — permission-gated, budgeted, kill-switchable, and receipted — and your tool credentials live in Owyhee custody, not on the box. No keys in env files, no open gateway, no wondering what it did overnight.</p>
+  <p class="lede">This stands up a hardened OpenClaw agent in your own cloud. Every tool it touches — and its model calls too — go through Owyhee: permission-gated, budgeted, kill-switchable, and receipted. Your credentials live in Owyhee custody, not on the box. No keys in env files, no open gateway, no wondering what it did overnight.</p>
 
   <h2>Pick a deploy path</h2>
 
   <div class="card">
     <h3>Railway — one click</h3>
-    <p>The fastest path. Railway builds and runs the image for you; you fill in your email and model key as it deploys.</p>
+    <p>The fastest path. Railway builds and runs the image for you; you fill in your email as it deploys — no model key needed.</p>
     <a class="btn" href="https://railway.com/deploy/owyhee-governed-openclaw-agent"><span>Deploy on Railway →</span></a>
-    <div class="meta">Set <code>OWYHEE_DEPLOY_EMAIL</code> and <code>ANTHROPIC_API_KEY</code> when prompted. Add a volume at <code>/data</code> so re-deploys keep the same account.</div>
+    <div class="meta">Set <code>OWYHEE_DEPLOY_EMAIL</code> when prompted. Add a volume at <code>/data</code> so re-deploys keep the same account. Connect your LLM provider in the console after claiming.</div>
   </div>
 
   <div class="card">
     <h3>DigitalOcean — droplet with a paste-in script</h3>
-    <p>Create an Ubuntu droplet, and under <b>Advanced options → user data</b> paste the cloud-init below (edit the two values first). It installs Docker and boots the agent.</p>
+    <p>Create an Ubuntu droplet, and under <b>Advanced options → user data</b> paste the cloud-init below (set your email first — no model key). It installs Docker and boots the agent.</p>
     <pre>curl -fsSL https://raw.githubusercontent.com/MachinesOfDesire/owyhee-openclaw-template/main/deploy/cloud-init-digitalocean.yml</pre>
     <div class="meta">A native 1-Click Marketplace listing is in review — this script is the same thing, available today.</div>
   </div>
