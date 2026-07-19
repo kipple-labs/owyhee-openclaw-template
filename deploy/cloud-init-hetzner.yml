@@ -3,24 +3,24 @@
 #
 # Hetzner has no one-click marketplace button, but every server-create surface
 # (console "Cloud config", hcloud CLI --user-data, Terraform user_data) accepts
-# a cloud-config. Edit the two ENV values, then paste this in.
+# a cloud-config. Set OWYHEE_DEPLOY_EMAIL (the only required edit), then paste
+# this in. NO model key goes here — the model routes through the Owyhee proxy.
 #   OWYHEE_DEPLOY_EMAIL  — receives the claim link, owns the account
-#   ANTHROPIC_API_KEY    — your model key
-# Optional: OWYHEE_MCP_SERVERS, OWYHEE_DEPLOY_TOKEN.
+# Optional: OWYHEE_MCP_SERVERS, OWYHEE_DEPLOY_TOKEN, OWYHEE_LLM_SERVER, OWYHEE_MODEL.
 #
 #   hcloud server create --name owyhee-agent --type cx22 --image ubuntu-24.04 \
 #     --user-data-from-file deploy/cloud-init-hetzner.yml
 #
 # Same shape as the DigitalOcean path: Docker + the public hardened image +
-# a persistent volume for idempotent re-boots. Tool traffic is Owyhee-governed;
-# nothing is exposed publicly.
+# a persistent volume for idempotent re-boots. Tool AND model traffic are
+# Owyhee-governed; nothing is exposed publicly. After boot, claim your account
+# and connect your LLM provider in the console.
 
 write_files:
   - path: /etc/owyhee/agent.env
     permissions: '0600'
     content: |
       OWYHEE_DEPLOY_EMAIL=you@example.com
-      ANTHROPIC_API_KEY=sk-ant-REPLACE_ME
       OWYHEE_BASE_URL=https://console.kipplelabs.com
       OWYHEE_MCP_SERVERS=
       OWYHEE_DEPLOY_TOKEN=
