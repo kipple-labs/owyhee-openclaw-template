@@ -61,7 +61,8 @@ After claiming, open the console → **Connected Services** to connect your **LL
 | `OWYHEE_DEPLOY_REF` | no | Label for this deploy (audit + credential labels). |
 | `OPENCLAW_GATEWAY_PORT` | no | Gateway port (default 18789). |
 | `OWYHEE_LLM_SERVER` | no | The `is_llm_provider` server (from your console) the model routes through. Leave unset to use the deploy default. |
-| `OWYHEE_MODEL` | no | The model slug OpenClaw sends; set it to match the provider you connect. |
+| `OWYHEE_MODEL` | no | The model ref OpenClaw uses (`provider/model`); set it to match the provider you connect. |
+| `OWYHEE_LLM_API` | no | OpenClaw provider API shape: `openai-completions` (default) or `anthropic-messages`. |
 
 The box holds **zero provider keys** — the agent's model routes through the Owyhee proxy, which injects the custodied upstream key and forwards. Connect your LLM provider once under **Connected Services**; the model call is then token-metered, budgeted, kill-switchable, and receipted like every other action.
 

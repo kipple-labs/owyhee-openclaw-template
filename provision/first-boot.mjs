@@ -42,6 +42,9 @@ const GATEWAY_PORT = Number(process.env.OPENCLAW_GATEWAY_PORT || 18789);
 // connect.
 const LLM_SERVER = (process.env.OWYHEE_LLM_SERVER || 'openrouter').trim();
 const DEFAULT_MODEL = (process.env.OWYHEE_MODEL || 'openrouter/auto').trim();
+// OpenClaw provider API shape for the upstream: 'openai-completions' (default —
+// covers OpenRouter and most OpenAI-compatible proxies) or 'anthropic-messages'.
+const LLM_API = (process.env.OWYHEE_LLM_API || 'openai-completions').trim();
 
 const log = (msg) => console.log(`[owyhee-boot] ${msg}`);
 const warn = (msg) => console.error(`[owyhee-boot] !! ${msg}`);
@@ -141,23 +144,39 @@ cfg.gateway = {
   bind: process.env.OPENCLAW_GATEWAY_BIND || 'lan',
   auth: { ...(cfg.gateway?.auth ?? {}), mode: 'token', token: gatewayToken },
 };
-// Model routing: point OpenClaw's model provider at the Owyhee proxy. The box
-// holds NO provider key — Owyhee injects the custodied upstream key and
-// forwards, so every model call is token-metered, budgeted, kill-switchable,
-// and receipted, exactly like tool calls. The upstream is whichever
-// is_llm_provider server the operator connects in the console; the model slug
-// rides per request.
+// Model routing: register the Owyhee proxy as a custom OpenClaw model provider.
+// The box holds NO provider key — the proxy injects the custodied upstream key
+// (OpenRouter, Anthropic, …) and forwards, so every model call is token-metered,
+// budgeted, kill-switchable, and receipted, exactly like tool calls.
 //
-// NOTE: confirm the OpenClaw custom-provider key names below against
-// `openclaw config validate` on a live boot (OpenClaw 2026.7.1). The
-// no-provider-key-on-the-box invariant holds regardless of the exact schema.
+// Schema per OpenClaw 2026.7.1 (concepts/model-providers → "Local proxies"):
+//   models.providers.<name> = { baseUrl, apiKey, api, models: [{ id }] }  (mode:merge)
+//   agents.defaults.model.primary = "<name>/<model>"
+// api='openai-completions' => OpenClaw POSTs <baseUrl>/chat/completions; the
+// governor maps that onto the connected is_llm_provider upstream.
 if (creds?.token) {
-  cfg.model = {
-    ...(cfg.model ?? {}),
-    provider: 'owyhee',
-    baseUrl: `${proxyBase}/proxy/${LLM_SERVER}`,
-    apiKey: creds.token,
-    model: DEFAULT_MODEL,
+  const modelRef = DEFAULT_MODEL.includes('/') ? DEFAULT_MODEL : `${LLM_SERVER}/${DEFAULT_MODEL}`;
+  const modelId = modelRef.slice(modelRef.indexOf('/') + 1);
+  cfg.agents = {
+    ...(cfg.agents ?? {}),
+    defaults: {
+      ...(cfg.agents?.defaults ?? {}),
+      model: { ...(cfg.agents?.defaults?.model ?? {}), primary: modelRef },
+    },
+  };
+  cfg.models = {
+    ...(cfg.models ?? {}),
+    mode: cfg.models?.mode ?? 'merge',
+    providers: {
+      ...(cfg.models?.providers ?? {}),
+      [LLM_SERVER]: {
+        ...(cfg.models?.providers?.[LLM_SERVER] ?? {}),
+        baseUrl: `${proxyBase}/proxy/${LLM_SERVER}`,
+        apiKey: creds.token,
+        api: LLM_API,
+        models: [{ id: modelId }],
+      },
+    },
   };
 }
 
