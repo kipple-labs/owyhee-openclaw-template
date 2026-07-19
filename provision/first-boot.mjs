@@ -174,7 +174,7 @@ if (creds?.token) {
         baseUrl: `${proxyBase}/proxy/${LLM_SERVER}`,
         apiKey: creds.token,
         api: LLM_API,
-        models: [{ id: modelId }],
+        models: [{ id: modelId, name: modelId }],
       },
     },
   };
