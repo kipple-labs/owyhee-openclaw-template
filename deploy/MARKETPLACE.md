@@ -6,7 +6,7 @@ these are the account-scoped actions only the repo/cloud owner can take.
 ## 1. Publish the public image (enabler for all three paths)
 
 `.github/workflows/publish-image.yml` builds and pushes
-`ghcr.io/machinesofdesire/owyhee-openclaw` on every push to `main`.
+`ghcr.io/kipple-labs/owyhee-openclaw` on every push to `main`.
 
 - After the first successful run, set the package to **public**: GitHub →
   your profile/org → Packages → `owyhee-openclaw` → Package settings → Change

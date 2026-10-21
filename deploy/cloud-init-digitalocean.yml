@@ -33,5 +33,5 @@ runcmd:
     docker run -d --name owyhee-agent --restart unless-stopped \
       --env-file /etc/owyhee/agent.env \
       -v owyhee-data:/data \
-      ghcr.io/machinesofdesire/owyhee-openclaw:latest
+      ghcr.io/kipple-labs/owyhee-openclaw:latest
   - echo "Owyhee agent started. Check your email for the claim link, then claim the account at https://console.kipplelabs.com" > /root/OWYHEE-README.txt

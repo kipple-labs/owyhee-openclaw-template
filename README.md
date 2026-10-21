@@ -25,7 +25,7 @@ paths: `deploy/landing/index.html`.
 | **Hetzner** | `hcloud server create … --user-data-from-file deploy/cloud-init-hetzner.yml` | No native button; cloud-init works on every create surface. |
 
 All three pass your deploy email through to Owyhee provisioning and pull the
-public image `ghcr.io/machinesofdesire/owyhee-openclaw:latest` (built by
+public image `ghcr.io/kipple-labs/owyhee-openclaw:latest` (built by
 `.github/workflows/publish-image.yml`). Tool traffic is Owyhee-governed and the
 gateway is never exposed publicly. See [`deploy/MARKETPLACE.md`](deploy/MARKETPLACE.md)
 for the DigitalOcean Marketplace submission checklist and the one-time Railway
